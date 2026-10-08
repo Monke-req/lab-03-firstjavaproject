@@ -13,7 +13,10 @@ public class Order {
     private Payment payment;
 
     public Order(Customer customer) {
-        // TODO: validate customer
+        if (customer == null) {
+            throw new IllegalArgumentException("Customer cannot be null");
+        }
+
         this.customer = customer;
         this.items = new ArrayList<>();
         this.status = OrderStatus.CREATED;
@@ -36,32 +39,94 @@ public class Order {
     }
 
     public void addItem(Product product, int quantity) {
-        // TODO: items may be added only while the order is CREATED
-        throw new UnsupportedOperationException("TODO");
+        if (status != OrderStatus.CREATED) {
+            throw new IllegalStateException(
+                    "Items can be added only to a CREATED order"
+            );
+        }
+
+        items.add(new OrderItem(product, quantity));
     }
 
     public double total() {
-        // TODO: sum amounts of all order items
-        throw new UnsupportedOperationException("TODO");
+        double total = 0.0;
+
+        for (OrderItem item : items) {
+            total += item.getAmount();
+        }
+
+        return total;
     }
 
     public void confirm() {
-        // TODO: confirm a non-empty CREATED order for an active customer within the credit limit
-        throw new UnsupportedOperationException("TODO");
+        if (status != OrderStatus.CREATED) {
+            throw new IllegalStateException(
+                    "Only CREATED order can be confirmed"
+            );
+        }
+
+        if (items.isEmpty()) {
+            throw new IllegalStateException(
+                    "Cannot confirm an empty order"
+            );
+        }
+
+        if (!customer.isActive()) {
+            throw new IllegalStateException(
+                    "Inactive customer cannot confirm an order"
+            );
+        }
+
+        if (!customer.canPlaceOrder(total())) {
+            throw new IllegalStateException(
+                    "Order exceeds customer's credit limit"
+            );
+        }
+
+        status = OrderStatus.CONFIRMED;
     }
 
     public void cancel() {
-        // TODO: allow cancellation only before payment
-        throw new UnsupportedOperationException("TODO");
+        if (status != OrderStatus.CREATED
+                && status != OrderStatus.CONFIRMED) {
+            throw new IllegalStateException(
+                    "Only CREATED or CONFIRMED order can be cancelled"
+            );
+        }
+
+        status = OrderStatus.CANCELLED;
     }
 
     public void pay(Payment payment) {
-        // TODO: accept only a successful payment for the exact total of a CONFIRMED order
-        throw new UnsupportedOperationException("TODO");
+        if (status != OrderStatus.CONFIRMED) {
+            throw new IllegalStateException(
+                    "Only CONFIRMED order can be paid"
+            );
+        }
+
+        if (payment == null) {
+            throw new IllegalArgumentException(
+                    "Payment cannot be null"
+            );
+        }
+
+        if (!payment.isSuccessful()) {
+            throw new IllegalStateException(
+                    "Payment must be successful"
+            );
+        }
+
+        if (payment.getAmount() != total()) {
+            throw new IllegalArgumentException(
+                    "Payment amount must equal order total"
+            );
+        }
+
+        this.payment = payment;
+        this.status = OrderStatus.PAID;
     }
 
     public boolean isPaid() {
-        // TODO: return true only for PAID order
-        throw new UnsupportedOperationException("TODO");
+        return status == OrderStatus.PAID;
     }
 }
